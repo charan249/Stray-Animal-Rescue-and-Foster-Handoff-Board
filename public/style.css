@@ -1,0 +1,84 @@
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #f6f3ee;
+  color: #2b2620;
+  margin: 0;
+  padding: 0 1rem 3rem;
+}
+header {
+  padding: 2rem 0 1rem;
+  text-align: center;
+}
+header h1 { margin: 0; font-size: 1.8rem; }
+.subtitle { color: #6b6255; margin: 0.3rem 0 0; }
+
+main {
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+section {
+  background: #fff;
+  border: 1px solid #e4ddd0;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+
+h2 { margin-top: 0; font-size: 1.1rem; }
+
+form { display: flex; flex-direction: column; gap: 0.6rem; }
+input, textarea, select, button {
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #d8d0c0;
+  border-radius: 6px;
+}
+textarea { min-height: 70px; resize: vertical; }
+button {
+  background: #b5622b;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+button:hover { background: #9c5223; }
+button:disabled { background: #c9b9a9; cursor: not-allowed; }
+
+.call-card {
+  border: 1px solid #e4ddd0;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.8rem;
+}
+.call-card .top-row { display: flex; justify-content: space-between; align-items: center; }
+.call-card .location { font-weight: 600; }
+.badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  text-transform: capitalize;
+}
+.badge.reported { background: #fde8d0; color: #8a4b12; }
+.badge.claimed { background: #ddeeff; color: #1a4d80; }
+.badge.picked_up { background: #e4e0ff; color: #4331a3; }
+.badge.at_clinic { background: #ffe0e0; color: #a32222; }
+.badge.at_foster { background: #ddf5df; color: #24762e; }
+.badge.resolved { background: #e5e5e5; color: #555; }
+
+.urgent-tag { color: #b5222b; font-weight: 700; font-size: 0.8rem; }
+
+.call-card .desc { margin: 0.4rem 0; color: #4a453d; }
+.call-card .actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+.call-card .actions button { padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+
+.status-msg { font-size: 0.9rem; margin-top: 0.5rem; }
+.status-msg.error { color: #a32222; }
+.status-msg.success { color: #24762e; }
+
+.handoff-log { margin-top: 0.6rem; border-top: 1px dashed #e4ddd0; padding-top: 0.6rem; }
+.handoff-entry { font-size: 0.85rem; color: #4a453d; margin-bottom: 0.3rem; }
+.handoff-entry .stage-label { font-weight: 600; }

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rescue &amp; Foster Handoff Board</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🐾 Rescue &amp; Foster Handoff Board</h1>
+    <p class="subtitle">Log rescue calls · claim pickups · track handoffs</p>
+  </header>
+
+  <main>
+    <section class="report-form">
+      <h2>Report a Rescue Call</h2>
+      <form id="reportForm">
+        <input type="text" id="location" placeholder="Location (e.g. Park Street bus stop)" required>
+        <textarea id="description" placeholder="Describe the animal and situation" required></textarea>
+        <select id="urgency">
+          <option value="normal">Normal</option>
+          <option value="urgent">Urgent</option>
+          <option value="low">Low</option>
+        </select>
+        <button type="submit">Report Call</button>
+      </form>
+      <div id="reportStatus"></div>
+    </section>
+
+    <section class="board">
+      <h2>Active Calls</h2>
+      <div id="callList">Loading...</div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
