@@ -1,30 +1,43 @@
 -- schema.sql
 -- Run this once against your Postgres database to set up the tables.
 
--- Every rescue call reported starts here. "status" moves through a fixed set of stages.
--- Claiming a call just means setting claimed_by + status='claimed' — see the claim
--- logic in routes/calls.js for why this prevents two people claiming the same call.
 CREATE TABLE IF NOT EXISTS rescue_calls (
     id SERIAL PRIMARY KEY,
     location TEXT NOT NULL,
-    description TEXT NOT NULL,
+    description TEXT NOT NULL,          -- animal condition / situation description
+    photo TEXT,                          -- base64-encoded image (kept small/compressed client-side; see TRADEOFFS.md)
     urgency TEXT NOT NULL DEFAULT 'normal',      -- 'low' | 'normal' | 'urgent'
-    status TEXT NOT NULL DEFAULT 'reported',      -- reported | claimed | in_transit | at_clinic | at_foster | resolved
-    claimed_by TEXT,                               -- name of the volunteer who claimed it (NULL until claimed)
+    status TEXT NOT NULL DEFAULT 'reported',      -- reported | claimed | picked_up | at_clinic | at_foster | resolved | cancelled
+    claimed_by TEXT,
+    dietary_needs TEXT,                  -- set once the animal reaches foster care (nullable until known)
+    medication_schedule TEXT,            -- free-text schedule, e.g. "Amoxicillin 250mg, 2x daily with food"
     reported_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- A running log of what happened to the animal at each stage — this is what stops
--- medical notes from getting lost when the animal moves from clinic to foster home.
--- Every stage change or note gets its own row here, so nothing overwrites history.
+-- Append-only history of stage changes and medical notes.
 CREATE TABLE IF NOT EXISTS handoffs (
     id SERIAL PRIMARY KEY,
     call_id INTEGER NOT NULL REFERENCES rescue_calls(id) ON DELETE CASCADE,
-    stage TEXT NOT NULL,          -- e.g. 'picked_up', 'at_clinic', 'at_foster', 'resolved'
-    medical_notes TEXT,            -- can be NULL if this entry is just a stage change with no new notes
-    recorded_by TEXT,              -- who logged this entry
+    stage TEXT NOT NULL,
+    medical_notes TEXT,
+    recorded_by TEXT,
     recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- One row per daily foster check-in: did meds get given today, is the animal worsening.
+CREATE TABLE IF NOT EXISTS daily_checkins (
+    id SERIAL PRIMARY KEY,
+    call_id INTEGER NOT NULL REFERENCES rescue_calls(id) ON DELETE CASCADE,
+    checkin_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    medication_given BOOLEAN NOT NULL DEFAULT false,
+    condition_worsening BOOLEAN NOT NULL DEFAULT false,
+    notes TEXT,
+    recorded_by TEXT,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- one check-in per animal per day keeps this a toggle, not a spam log
+    UNIQUE (call_id, checkin_date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_handoffs_call_id ON handoffs(call_id);
+CREATE INDEX IF NOT EXISTS idx_checkins_call_id ON daily_checkins(call_id);
