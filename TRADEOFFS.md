@@ -1,85 +1,49 @@
-# Trade-offs & Design Notes
+# Engineering Trade-offs & Design Decisions
 
-## Preventing duplicate claims
+This document outlines the architectural decisions, trade-offs, and intentional omissions made during the development of the Rescue Board.
 
-Claiming is one atomic SQL statement:
-`UPDATE rescue_calls SET status='claimed', claimed_by=$1 WHERE id=$2 AND status='reported'`.
-Postgres guarantees only one concurrent request can match that `WHERE` clause,
-so two drivers tapping "claim" at the same instant cannot both win. The loser
-gets a clear rejection naming who got there first. Verified by firing two
-simultaneous claim requests at the same call in testing — exactly one
-succeeds, every time.
+## 🛠 Architectural Trade-offs
 
-## "Real-time" interpreted as polling, not WebSockets
+### 1. State Management: Snapshotting vs. Relational Joins
+**Decision**: I implemented "caretaker snapshots" (`current_caretaker_name/phone`) directly in the `rescue_calls` table rather than performing complex joins on the `handoffs` table for every board render.
+- **Trade-off**: This introduces slight data redundancy (denormalization).
+- **Reasoning**: In a mission-critical board, read speed is paramount. Snapshotting allows for a single, fast query to render the entire board, ensuring volunteers aren't waiting for a page load during an emergency.
 
-The brief asks for a "real-time claim button." Given the free-tier and
-simplicity constraints, this is built as: an atomic, instant-feedback claim
-API (no delay, no race window) plus a lightweight 8-second poll (`setInterval`
-+ `fetch`) that refreshes the board so a driver sees another driver's claim
-land without a manual reload. A full WebSocket/pub-sub layer would give
-sub-second sync but adds real complexity (persistent connections, free-tier
-hosting sleep/wake cycles on Render) for a coordination board where an
-8-second delay in seeing someone *else's* claim doesn't cause the actual
-failure mode — the atomic claim logic is what prevents the duplicate-trip
-outcome, not the refresh speed.
+### 2. Real-time Strategy: WebSockets with Polling Fallback
+**Decision**: The system uses `Socket.io` for instant updates, but retains a 30-second `setInterval` polling mechanism.
+- **Trade-off**: Increased server overhead due to dual synchronization methods.
+- **Reasoning**: WebSockets can occasionally drop on unstable mobile data (common in field rescue). The polling fallback ensures that even if a socket connection is lost, the board will eventually synchronize without requiring a manual refresh.
 
-## Photos stored as compressed base64, not a file storage service
+### 3. UI/UX: Playful vs. Clinical Aesthetic
+**Decision**: Adopted a "Duolingo-style" playful design (chunky borders, vibrant colors, rounded fonts) over a traditional clinical medical interface.
+- **Trade-off**: May appear "less serious" to traditional medical professionals.
+- **Reasoning**: Animal rescue is high-stress. A playful, friendly UI reduces cognitive load and anxiety for volunteers, making the coordination process feel more approachable and less intimidating.
 
-The constraint is zero-cost storage with no extra sign-up. Rather than adding
-an S3/Cloudinary account, photos are compressed client-side (downscaled to
-700px wide, JPEG at 60% quality — typically well under 100KB) and stored
-directly as a base64 string in Postgres. This keeps the free-tier footprint
-to just the one database and works fine at prototype scale. It would not
-scale to hundreds of photos (the free Postgres tier caps at ~1GB) — a real
-version should move to a dedicated object store once volume grows.
+## 🛡️ Edge Case Handling
 
-## Foster info vs. handoff log — two different tables on purpose
+### 1. The "Race Condition" (Atomic Claiming)
+To prevent two volunteers from claiming the same animal simultaneously, the system avoids a "read-then-write" pattern. Instead, it uses an **atomic SQL update**:
+`UPDATE rescue_calls SET status = 'claimed' WHERE id = $1 AND status = 'reported'`
+If the status changed between the time the user saw the button and clicked it, the query returns 0 rows, and the system triggers a "Too late—already claimed" error.
 
-Dietary needs and medication schedule live directly on `rescue_calls` as
-current-state fields (settable once, updated in place) rather than the
-`handoffs` log. The log is a *history* of what happened; diet/meds are *what
-a foster host needs to know right now*. Mixing them would mean the frontend
-has to hunt through history to find the latest instruction — a real risk for
-the exact failure mode (lost medical info) the brief is about.
+### 2. Stalled Rescues
+A rescue is considered "stalled" if it remains in the `claimed` state for over 2 hours without moving to `picked_up`.
+- **Handling**: The UI visually flags these cards (yellow border/STALLED tag), alerting coordinators that the driver may have encountered an issue.
 
-## Daily check-in is a toggle, not a log entry
+### 3. GPS Failures
+Geolocation is unpredictable in rural areas or inside buildings.
+- **Handling**: The system allows for a manual text-based location input. If GPS fails or is denied, the system falls back to standard text search for Google Maps links.
 
-A check-in upserts on `(call_id, checkin_date)` — hitting "save" twice in one
-day updates today's entry rather than creating duplicates. This matches how
-the brief describes it ("daily check-in toggle"), and avoids a foster host's
-corrected entry getting buried under an earlier mistaken one.
+## 🚫 Intentional Omissions
 
-## Edge cases handled
+### 1. User Authentication & Accounts
+The system does not currently require usernames or passwords.
+- **Reasoning**: In emergency rescue, every second counts. Adding a login screen creates friction. The system instead relies on a "trust-but-verify" model where volunteers provide their name/phone at the point of action (Claim/Handoff).
 
-- **Cancelled rescues**: a call can be cancelled unless it's already resolved
-  or already cancelled (checked at the DB level, not just in the UI) — an
-  already-completed case can't be retroactively cancelled, and a cancelled
-  call can't then be claimed (returns a clear "this call was cancelled"
-  instead of a generic error).
-- **Missed medication doses**: the check-in toggle defaults to unchecked, so
-  a day with no check-in is visibly distinguishable from a day where meds
-  were confirmed given — nothing defaults to "looks fine."
-- **Race on claim**: covered above — this was the primary edge case to get
-  right.
+### 2. Integrated Map View
+Detailed interactive maps (e.g., Leaflet/Google Maps API) were removed.
+- **Reasoning**: Integrated maps often lead to "map-bloat" on mobile devices, slowing down page loads. By providing a direct link to the Google Maps app, we leverage the native app's superior navigation and routing features.
 
-## What was intentionally left out
-
-- **No authentication or accounts** — required by the brief (no sign-up to
-  claim an urgent rescue). `claimed_by` / `recorded_by` are trusted free-text
-  fields; good enough for a volunteer network on a shared link, not for
-  contested accountability.
-- **No push notifications** for new urgent calls — the polling refresh
-  surfaces new calls within 8 seconds of a manual glance at the board, but
-  won't wake up a phone that's locked. Would need a service worker or SMS
-  integration next.
-- **No map view** — the dashboard is filtered by stage, not geography.
-  Useful next step, secondary to the core claim/handoff problem.
-- **No edit/undo on a claim** once made (only cancel). Deliberately narrow to
-  keep the claim guarantee simple and auditable rather than adding a
-  re-assignment flow under time pressure.
-
-## What I'd build next with more time
-
-Push notifications for new urgent calls, a lightweight PIN per volunteer
-(short of full accounts) so claims/check-ins aren't pure free-text, and a
-map view layered on top of the existing stage filters.
+### 3. Complex Role-Based Access Control (RBAC)
+There is no separate "Admin" vs "Volunteer" login.
+- **Reasoning**: The app is designed as a shared coordination space. Role-specific functionality is handled via the state of the rescue (e.g., only the current caretaker sees the "Mark as Picked Up" button).

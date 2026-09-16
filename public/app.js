@@ -411,7 +411,7 @@ async function claimCall(callId, btn, statusMsg) {
   btn.textContent = 'Locking...';
   const confirmed = await showModal({
     title: 'Claim Rescue',
-    body: '<p>Are you sure you can handle this rescue? Please enter your details:</p><input type="text" id="modal-claim-name" placeholder="Your Name" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;"><input type="tel" id="modal-claim-phone" placeholder="Your Phone Number" style="width:100%; padding: 0.5rem; margin-bottom: 1rem;">',
+    body: '<p>Are you sure you can handle this rescue? Please enter your details:</p><input type="text" id="modal-claim-name" class="modal-field" placeholder="Your Name"><input type="tel" id="modal-claim-phone" class="modal-field" placeholder="Your Phone Number">',
     onConfirm: () => {},
   });
   if (!confirmed) {
@@ -484,17 +484,17 @@ async function logHandoff(callId, stage, btn, statusMsg) {
     modalTitle = 'Clinic Intake';
     modalBody = `
       <p>Enter clinic employee details:</p>
-      <input type="text" id="handoff-name" placeholder="Employee Name" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;" required>
-      <input type="tel" id="handoff-phone" placeholder="Phone Number" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;" required>
-      <textarea id="handoff-notes" placeholder="Medical notes (optional)..." style="width:100%; padding: 0.5rem; height: 80px;"></textarea>
+      <input type="text" id="handoff-name" class="modal-field" placeholder="Employee Name" required>
+      <input type="tel" id="handoff-phone" class="modal-field" placeholder="Phone Number" required>
+      <textarea id="handoff-notes" class="modal-field" placeholder="Medical notes (optional)..." style="height: 80px;"></textarea>
     `;
   } else if (stage === 'at_foster') {
     modalTitle = 'Foster Placement';
     modalBody = `
       <p>Enter foster parent details:</p>
-      <input type="text" id="handoff-name" placeholder="Foster Parent Name" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;" required>
-      <input type="tel" id="handoff-phone" placeholder="Phone Number" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;" required>
-      <textarea id="handoff-notes" placeholder="Medical notes (REQUIRED)..." style="width:100%; padding: 0.5rem; height: 80px;"></textarea>
+      <input type="text" id="handoff-name" class="modal-field" placeholder="Foster Parent Name" required>
+      <input type="tel" id="handoff-phone" class="modal-field" placeholder="Phone Number" required>
+      <textarea id="handoff-notes" class="modal-field" placeholder="Medical notes (REQUIRED)..." style="height: 80px;"></textarea>
     `;
   } else if (stage === 'resolved') {
     modalTitle = 'Resolve Rescue';
@@ -503,9 +503,9 @@ async function logHandoff(callId, stage, btn, statusMsg) {
   } else {
     modalBody = `
       <p>Record the handoff details:</p>
-      <input type="text" id="handoff-name" placeholder="Your Name" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;">
-      <input type="tel" id="handoff-phone" placeholder="Your Phone Number" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;">
-      <textarea id="handoff-notes" placeholder="Medical notes (optional)..." style="width:100%; padding: 0.5rem; height: 80px;"></textarea>
+      <input type="text" id="handoff-name" class="modal-field" placeholder="Your Name">
+      <input type="tel" id="handoff-phone" class="modal-field" placeholder="Your Phone Number">
+      <textarea id="handoff-notes" class="modal-field" placeholder="Medical notes (optional)..." style="height: 80px;"></textarea>
     `;
   }
   const confirmed = await showModal({
@@ -565,8 +565,8 @@ async function setFosterInfo(callId, btn, statusMsg) {
     title: 'Foster Care Details',
     body: `
       <p>Set dietary and medical needs:</p>
-      <input type="text" id="foster-diet" placeholder="Dietary needs" style="width:100%; padding: 0.5rem; margin-bottom: 0.5rem;">
-      <textarea id="foster-meds" placeholder="Medication schedule" style="width:100%; padding: 0.5rem; height: 80px;"></textarea>
+      <input type="text" id="foster-diet" class="modal-field" placeholder="Dietary needs">
+      <textarea id="foster-meds" class="modal-field" placeholder="Medication schedule" style="height: 80px;"></textarea>
     `,
     onConfirm: () => {},
   });
