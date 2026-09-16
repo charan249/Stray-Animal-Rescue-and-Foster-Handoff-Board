@@ -2,33 +2,43 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rescue &amp; Foster Handoff Board</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>🐾 Rescue &amp; Foster Handoff Board</h1>
-    <p class="subtitle">Log rescue calls · claim pickups · track handoffs</p>
+    <h1>🐾 Rescue Board</h1>
+    <p class="subtitle">Log calls · claim pickups · track foster care</p>
   </header>
 
   <main>
     <section class="report-form">
       <h2>Report a Rescue Call</h2>
       <form id="reportForm">
-        <input type="text" id="location" placeholder="Location (e.g. Park Street bus stop)" required>
-        <textarea id="description" placeholder="Describe the animal and situation" required></textarea>
+        <input type="text" id="location" placeholder="Location" required>
+        <textarea id="description" placeholder="Animal & condition (e.g. limping, underweight)" required></textarea>
         <select id="urgency">
-          <option value="normal">Normal</option>
           <option value="urgent">Urgent</option>
+          <option value="normal" selected>Normal</option>
           <option value="low">Low</option>
         </select>
+        <label class="photo-label">
+          📷 Add a photo (optional)
+          <input type="file" id="photoInput" accept="image/*" capture="environment">
+        </label>
+        <img id="photoPreview" class="photo-preview" style="display:none">
         <button type="submit">Report Call</button>
       </form>
-      <div id="reportStatus"></div>
+      <div id="reportStatus" class="status-msg"></div>
     </section>
 
     <section class="board">
-      <h2>Active Calls</h2>
+      <div class="tabs">
+        <button class="tab-btn active" data-filter="emergencies">Open Emergencies</button>
+        <button class="tab-btn" data-filter="transit">In Transit</button>
+        <button class="tab-btn" data-filter="foster">Foster Care</button>
+      </div>
       <div id="callList">Loading...</div>
     </section>
   </main>
