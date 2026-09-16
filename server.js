@@ -4,11 +4,12 @@ const express = require('express');
 const pool = require('./db');
 
 const app = express();
-app.use(express.json()); // lets us read JSON bodies from fetch() requests
+app.use(express.json({ limit: '2mb' })); // lets us read JSON bodies from fetch() requests; bumped for base64 photos
 app.use(express.static('public')); // serves our HTML/CSS/JS frontend from the "public" folder
 
 app.use('/api', require('./routes/calls'));
 app.use('/api', require('./routes/handoffs'));
+app.use('/api', require('./routes/checkins'));
 
 // A basic health check route — now also confirms the database is reachable.
 app.get('/api/health', async (req, res) => {
