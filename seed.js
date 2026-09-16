@@ -1,95 +1,90 @@
-// seed.js — populates the database with realistic demo data covering every
-// stage of the workflow, so the judge can see the full board without having
-// to manually create test data first. Run with: node seed.js
+// seed.js — populates the database with high-quality, professional demo data.
+// Run with: node seed.js
 require('dotenv').config();
 const pool = require('./db');
 
 async function seed() {
-  await pool.query('DELETE FROM daily_checkins');
-  await pool.query('DELETE FROM handoffs');
-  await pool.query('DELETE FROM rescue_calls');
+  console.log('🧹 Cleaning database...');
+  await pool.query('TRUNCATE TABLE daily_checkins, handoffs, rescue_calls RESTART IDENTITY CASCADE');
 
-  // 1. Open emergency, unclaimed, urgent
+  console.log('🌱 Planting professional demo data...');
+
+  // --- 1. REPORTED (Unclaimed, Urgent) ---
   await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status)
-     VALUES ($1,$2,$3,$4)`,
-    ['Near City Bus Depot', 'Dog hit by a two-wheeler, unable to stand, bleeding from front leg', 'urgent', 'reported']
+    `INSERT INTO rescue_calls (location, description, urgency, status, reported_by_name, reported_by_phone)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    ['Central Park Main Gate, Sector 4', 'Golden Retriever with a severe leg injury, unable to walk. Requires immediate transport.', 'urgent', 'reported', 'Sarah Jenkins', '9876543210']
   );
 
-  // 2. Open emergency, unclaimed, normal urgency
+  // --- 2. REPORTED (Unclaimed, Normal) ---
   await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status)
-     VALUES ($1,$2,$3,$4)`,
-    ['Behind Sai Baba Temple', 'Litter of 4 kittens, mother not seen for 2 days', 'normal', 'reported']
+    `INSERT INTO rescue_calls (location, description, urgency, status, reported_by_name, reported_by_phone)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    ['12th Cross, Jubilee Hills, House #45', 'Siamese cat trapped in a small attic space. Owner is unable to reach the animal.', 'normal', 'reported', 'Michael Chen', '9876543211']
   );
 
-  // 3. Claimed, waiting for pickup
+  // --- 3. CLAIMED (Waiting for Pickup) ---
   await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by)
-     VALUES ($1,$2,$3,$4,$5)`,
-    ['MG Road flyover underpass', 'Adult dog, skin infection, very thin', 'urgent', 'claimed', 'Arjun (driver)']
+    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by_name, claimed_by_phone, reported_by_name, reported_by_phone)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    ['Old Airport Road, near the Petrol Pump', 'Border Collie showing signs of severe malnutrition and skin infection.', 'urgent', 'claimed', 'David Miller', '9876543212', 'Anita Roy', '9876543213']
   );
 
-  // 4. In transit
+  // --- 4. PICKED UP (In Transit) ---
   const r4 = await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by)
-     VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-    ['Lakeview Park', 'Kitten stuck in storm drain, freed but shaken and limping', 'urgent', 'picked_up', 'Priya (driver)']
+    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by_name, claimed_by_phone, reported_by_name, reported_by_phone)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+    ['Victoria Gardens, East Wing', 'Maine Coon kitten found with respiratory distress. Stabilized but needs clinic checkup.', 'urgent', 'picked_up', 'Emily Watson', '9876543214', 'James Bond', '9876543215']
   );
   await pool.query(
-    `INSERT INTO handoffs (call_id, stage, recorded_by) VALUES ($1,'picked_up',$2)`,
-    [r4.rows[0].id, 'Priya (driver)']
+    `INSERT INTO handoffs (call_id, stage, recorded_by, recorded_by_phone) VALUES ($1,'picked_up',$2,$3)`,
+    [r4.rows[0].id, 'Emily Watson', '9876543214']
   );
 
-  // 5. At clinic
+  // --- 5. AT CLINIC (Under Medical Care) ---
   const r5 = await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by)
-     VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-    ['Ashoka Nagar Main Road', 'Dog with suspected fracture in hind leg', 'urgent', 'at_clinic', 'Deepak (driver)']
+    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by_name, claimed_by_phone, reported_by_name, reported_by_phone)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+    ['City Veterinary Hospital, Block B', 'Labrador with suspected fracture in hind leg. Currently under observation.', 'urgent', 'at_clinic', 'Mark Sloan', '9876543216', 'Lisa Ray', '9876543217']
   );
-  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by) VALUES ($1,'picked_up',$2)`, [r5.rows[0].id, 'Deepak (driver)']);
+  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by, recorded_by_phone) VALUES ($1,'picked_up',$2,$3)`, [r5.rows[0].id, 'Mark Sloan', '9876543216']);
   await pool.query(
-    `INSERT INTO handoffs (call_id, stage, medical_notes, recorded_by) VALUES ($1,'at_clinic',$2,$3)`,
-    [r5.rows[0].id, 'X-ray shows hairline fracture, splinted, needs cage rest 3 weeks, painkillers 2x daily', 'Dr. Nandini']
+    `INSERT INTO handoffs (call_id, stage, medical_notes, recorded_by, recorded_by_phone) VALUES ($1,'at_clinic',$2,$3,$4)`,
+    [r5.rows[0].id, 'X-ray confirms hairline fracture. Leg splinted. Prescribed cage rest for 3 weeks and pain medication 2x daily.', 'Dr. Sarah', '9876543218']
   );
 
-  // 6. At foster, with diet/meds set, and a check-in logged (worsening flag true, on purpose — edge case)
+  // --- 6. AT FOSTER (Recovery Stage) ---
   const r6 = await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by, dietary_needs, medication_schedule)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-    ['Green Valley Colony', 'Senior dog, recovering from mild dehydration', 'normal', 'at_foster', 'Kavya (driver)',
-     'Soft food only, small portions 3x/day', 'Electrolyte supplement mixed with water, 2x daily for 5 days']
+    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by_name, claimed_by_phone, reported_by_name, reported_by_phone, dietary_needs, medication_schedule)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+    ['Sunny Meadows Villa, Plot 12', 'Beagle recovering from emergency soft-tissue surgery. Stable and happy.', 'normal', 'at_foster', 'Kevin Hart', '9876543219', 'Paula Dent', '9876543220',
+     'High-protein wet food, small portions 4x per day', 'Antibiotics 1x daily at 8 AM, Vitamin B complex mixed with food']
   );
-  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by) VALUES ($1,'picked_up',$2)`, [r6.rows[0].id, 'Kavya (driver)']);
-  await pool.query(`INSERT INTO handoffs (call_id, stage, medical_notes, recorded_by) VALUES ($1,'at_clinic',$2,$3)`,
-    [r6.rows[0].id, 'Mild dehydration, given IV fluids, cleared for foster', 'Dr. Nandini']);
-  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by) VALUES ($1,'at_foster',$2)`, [r6.rows[0].id, 'Foster: Meena']);
+  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by, recorded_by_phone) VALUES ($1,'picked_up',$2,$3)`, [r6.rows[0].id, 'Kevin Hart', '9876543219']);
   await pool.query(
-    `INSERT INTO daily_checkins (call_id, medication_given, condition_worsening, notes, recorded_by, checkin_date)
-     VALUES ($1,$2,$3,$4,$5, CURRENT_DATE - 1)`,
-    [r6.rows[0].id, true, false, 'Ate well, active in the evening', 'Foster: Meena']
+    `INSERT INTO handoffs (call_id, stage, medical_//notes, recorded_by, recorded_by_phone) VALUES ($1,'at_clinic',$2,$3,$4)`,
+    [r6.rows[0].id, 'Surgical site cleaned. No signs of infection. Cleared for foster care.', 'Dr. Sarah', '9876543218']
+  );
+  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by, recorded_by_phone) VALUES ($1,'at_foster',$2,$3)`, [r6.rows[0].id, 'Foster: Meena', '9876543221']);
+  await pool.query(
+    `INSERT INTO daily_checkins (call_id, medication_given, condition_worsening, notes, recorded_by, recorded_by_phone, checkin_date)
+     VALUES ($1,$2,$3,$4,$5,$6, CURRENT_DATE - 1)`,
+    [r6.rows[0].id, true, false, 'Appetite returning, playful behavior observed in the afternoon.', 'Foster: Meena', '9876543221']
   );
 
-  // 7. Resolved (for completeness, doesn't show on any active tab)
+  // --- 7. RESOLVED (Completed) ---
   const r7 = await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by)
-     VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-    ['Rajiv Gandhi Nagar', 'Cat with minor cut on paw', 'low', 'resolved', 'Arjun (driver)']
+    `INSERT INTO rescue_calls (location, description, urgency, status, claimed_by_name, claimed_by_phone, reported_by_name, reported_by_phone)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+    ['Rajiv Gandhi Nagar', 'Cat with minor paw cut. Successfully adopted by new family.', 'low', 'resolved', 'Arjun', '9876543222', 'Sonia', '9876543223']
   );
-  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by) VALUES ($1,'resolved',$2)`, [r7.rows[0].id, 'Foster: Ramesh']);
+  await pool.query(`INSERT INTO handoffs (call_id, stage, recorded_by, recorded_by_phone) VALUES ($1,'resolved',$2,$3)`, [r7.rows[0].id, 'Adopted by Smith Family', '9876543224']);
 
-  // 8. Cancelled (edge case)
-  await pool.query(
-    `INSERT INTO rescue_calls (location, description, urgency, status)
-     VALUES ($1,$2,$3,$4)`,
-    ['Station Road', 'Reported injured pigeon — turned out to be a false alarm', 'low', 'cancelled']
-  );
-
-  console.log('Seed data inserted.');
+  console.log('✅ Database successfully wiped and populated with professional demo data.');
   await pool.end();
 }
 
 seed().catch(err => {
-  console.error(err);
+  console.error('❌ Seeding failed:', err);
   process.exit(1);
 });

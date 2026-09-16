@@ -596,9 +596,9 @@ async function renderCheckinToggle(callId, container) {
       <label><input type="checkbox" class="med-check" ${todayEntry?.medication_given ? 'checked' : ''}> Medication given today</label>
       <label><input type="checkbox" class="worse-check" ${todayEntry?.condition_worsening ? 'checked' : ''}> Condition worsening</label>
       <textarea class="checkin-notes" placeholder="Daily health notes (optional)...">${todayEntry?.notes || ''}</textarea>
-      <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-        <input type="text" id="checkin-name" placeholder="Your Name" style="flex:1; padding: 0.4rem; font-size: 0.8rem;">
-        <input type="tel" id="checkin-phone" placeholder="Phone" style="flex:1; padding: 0.4rem; font-size: 0.8rem;">
+      <div class="checkin-inputs">
+        <input type="text" id="checkin-name" placeholder="Your Name">
+        <input type="tel" id="checkin-phone" placeholder="Phone">
       </div>
       <button class="save-checkin" style="margin-top:0.5rem; width:100%;">Save today's check-in</button>
     </div>
