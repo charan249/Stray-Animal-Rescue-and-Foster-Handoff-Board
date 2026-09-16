@@ -1,57 +1,85 @@
 # Trade-offs & Design Notes
 
-## The core problem: preventing duplicate claims
+## Preventing duplicate claims
 
-The riskiest failure mode described in the brief is two drivers showing up to
-the same call. A naive fix — check status in the app, then write — leaves a
-race window: two requests can both read "unclaimed" before either writes.
-
-**Solution:** claiming is a single atomic SQL statement —
+Claiming is one atomic SQL statement:
 `UPDATE rescue_calls SET status='claimed', claimed_by=$1 WHERE id=$2 AND status='reported'`.
-Postgres guarantees only one concurrent request can match that `WHERE`
-clause. The loser gets a `409 Conflict` with the name of whoever won. This
-was tested by firing two simultaneous claim requests at the same call —
-exactly one succeeds, every time, regardless of timing.
+Postgres guarantees only one concurrent request can match that `WHERE` clause,
+so two drivers tapping "claim" at the same instant cannot both win. The loser
+gets a clear rejection naming who got there first. Verified by firing two
+simultaneous claim requests at the same call in testing — exactly one
+succeeds, every time.
 
-This mattered more than anything else in the brief, so most of the design
-time went here rather than into UI polish.
+## "Real-time" interpreted as polling, not WebSockets
 
-## Preventing lost medical notes
+The brief asks for a "real-time claim button." Given the free-tier and
+simplicity constraints, this is built as: an atomic, instant-feedback claim
+API (no delay, no race window) plus a lightweight 8-second poll (`setInterval`
++ `fetch`) that refreshes the board so a driver sees another driver's claim
+land without a manual reload. A full WebSocket/pub-sub layer would give
+sub-second sync but adds real complexity (persistent connections, free-tier
+hosting sleep/wake cycles on Render) for a coordination board where an
+8-second delay in seeing someone *else's* claim doesn't cause the actual
+failure mode — the atomic claim logic is what prevents the duplicate-trip
+outcome, not the refresh speed.
 
-The second failure mode is medical instructions disappearing when an animal
-moves from clinic to foster. The fix is structural, not a feature: `handoffs`
-is an **append-only log**, not a field that gets overwritten. Every stage
-change is a new row. A note written by a clinic vet stays visible in full
-after three more stage changes happen — verified directly against the API.
+## Photos stored as compressed base64, not a file storage service
 
-## Simplifications from a "full" version
+The constraint is zero-cost storage with no extra sign-up. Rather than adding
+an S3/Cloudinary account, photos are compressed client-side (downscaled to
+700px wide, JPEG at 60% quality — typically well under 100KB) and stored
+directly as a base64 string in Postgres. This keeps the free-tier footprint
+to just the one database and works fine at prototype scale. It would not
+scale to hundreds of photos (the free Postgres tier caps at ~1GB) — a real
+version should move to a dedicated object store once volume grows.
 
-- **No authentication.** Anyone with the link can report, claim, or update a
-  call. For a 48-hour prototype this keeps volunteers from getting locked
-  out by a login flow. In production this needs at least a shared PIN or
-  named-volunteer login, since `claimed_by` / `recorded_by` are currently
-  free-text fields — reliable enough to demo, not enough to trust for real
-  accountability.
-- **No notifications.** A dispatcher doesn't get pinged when a new urgent
-  call comes in; the board must be actively watched. A real version would
-  need push notifications or SMS for urgent calls.
-- **No photo uploads.** Rescue calls and medical notes are text-only. Photos
-  would meaningfully help identification but add file storage complexity
-  out of scope for 48 hours.
-- **No undo / edit history on claims.** If someone claims a call by mistake,
-  there's no "unclaim" button yet — a rescue coordinator would need direct
-  DB access to fix it. Deliberately left out to keep the claim logic's
-  correctness guarantee simple and auditable.
-- **Single flat call list**, no map view or filtering by area. Useful, but
-  secondary to the core coordination problem.
-- **No SMS/phone intake.** The brief mentions rescue calls arriving as
-  actual phone calls; this prototype assumes someone transcribes the call
-  into the form. A production version would likely integrate with a phone
-  system or at minimum a dedicated intake number.
+## Foster info vs. handoff log — two different tables on purpose
+
+Dietary needs and medication schedule live directly on `rescue_calls` as
+current-state fields (settable once, updated in place) rather than the
+`handoffs` log. The log is a *history* of what happened; diet/meds are *what
+a foster host needs to know right now*. Mixing them would mean the frontend
+has to hunt through history to find the latest instruction — a real risk for
+the exact failure mode (lost medical info) the brief is about.
+
+## Daily check-in is a toggle, not a log entry
+
+A check-in upserts on `(call_id, checkin_date)` — hitting "save" twice in one
+day updates today's entry rather than creating duplicates. This matches how
+the brief describes it ("daily check-in toggle"), and avoids a foster host's
+corrected entry getting buried under an earlier mistaken one.
+
+## Edge cases handled
+
+- **Cancelled rescues**: a call can be cancelled unless it's already resolved
+  or already cancelled (checked at the DB level, not just in the UI) — an
+  already-completed case can't be retroactively cancelled, and a cancelled
+  call can't then be claimed (returns a clear "this call was cancelled"
+  instead of a generic error).
+- **Missed medication doses**: the check-in toggle defaults to unchecked, so
+  a day with no check-in is visibly distinguishable from a day where meds
+  were confirmed given — nothing defaults to "looks fine."
+- **Race on claim**: covered above — this was the primary edge case to get
+  right.
+
+## What was intentionally left out
+
+- **No authentication or accounts** — required by the brief (no sign-up to
+  claim an urgent rescue). `claimed_by` / `recorded_by` are trusted free-text
+  fields; good enough for a volunteer network on a shared link, not for
+  contested accountability.
+- **No push notifications** for new urgent calls — the polling refresh
+  surfaces new calls within 8 seconds of a manual glance at the board, but
+  won't wake up a phone that's locked. Would need a service worker or SMS
+  integration next.
+- **No map view** — the dashboard is filtered by stage, not geography.
+  Useful next step, secondary to the core claim/handoff problem.
+- **No edit/undo on a claim** once made (only cancel). Deliberately narrow to
+  keep the claim guarantee simple and auditable rather than adding a
+  re-assignment flow under time pressure.
 
 ## What I'd build next with more time
 
-Named volunteer accounts (so `claimed_by` isn't just a trusted text field),
-push notifications for urgent calls, and a simple "unclaim" / reassign path
-for mis-claims — in that order, since they compound on the two guarantees
-already in place rather than replacing them.
+Push notifications for new urgent calls, a lightweight PIN per volunteer
+(short of full accounts) so claims/check-ins aren't pure free-text, and a
+map view layered on top of the existing stage filters.
