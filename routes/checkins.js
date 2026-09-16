@@ -17,27 +17,25 @@ router.get('/calls/:id/checkins', async (req, res) => {
 });
 
 // POST /api/calls/:id/checkins — log or update TODAY's check-in.
-// Body: { medication_given, condition_worsening, notes, recorded_by }
-// Uses UPSERT on (call_id, checkin_date) so hitting "check in" twice in one day
-// updates today's entry instead of creating duplicates — a foster host correcting
-// an earlier toggle shouldn't produce two rows for the same day.
+// Body: { medication_given, condition_worsening, notes, recorded_by_name, recorded_by_phone }
 router.post('/calls/:id/checkins', async (req, res) => {
   const { id } = req.params;
-  const { medication_given, condition_worsening, notes, recorded_by } = req.body;
+  const { medication_given, condition_worsening, notes, recorded_by_name, recorded_by_phone } = req.body;
 
   try {
     const result = await pool.query(
-      `INSERT INTO daily_checkins (call_id, medication_given, condition_worsening, notes, recorded_by)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO daily_checkins (call_id, medication_given, condition_worsening, notes, recorded_by, recorded_by_phone)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (call_id, checkin_date)
        DO UPDATE SET
          medication_given = EXCLUDED.medication_given,
          condition_worsening = EXCLUDED.condition_worsening,
          notes = EXCLUDED.notes,
          recorded_by = EXCLUDED.recorded_by,
+         recorded_by_phone = EXCLUDED.recorded_by_phone,
          recorded_at = now()
        RETURNING *`,
-      [id, !!medication_given, !!condition_worsening, notes || null, recorded_by || null]
+      [id, !!medication_given, !!condition_worsening, notes || null, recorded_by_name || null, recorded_by_phone || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

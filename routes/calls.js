@@ -3,6 +3,24 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
+// Helper to notify all clients to refresh the board
+const notifyRefresh = (req) => {
+  const io = req.app.get('socketio');
+  if (io) io.emit('refresh');
+};
+
+// GET /api/stats — total number of pets saved (resolved calls).
+router.get('/stats', async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT COUNT(*) as saved FROM rescue_calls WHERE status = 'resolved'"
+    );
+    res.json({ saved: parseInt(result.rows[0].saved, 10) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/calls — list all calls, newest first.
 router.get('/calls', async (req, res) => {
   try {
@@ -16,20 +34,18 @@ router.get('/calls', async (req, res) => {
 });
 
 // POST /api/calls — report a new rescue call.
-// Body: { location, description, urgency, photo }
-// "photo" is an optional base64 data-URL string, compressed client-side before sending
-// (see public/app.js) to stay usable on low-bandwidth mobile connections.
 router.post('/calls', async (req, res) => {
-  const { location, description, urgency, photo } = req.body;
+  const { location, description, urgency, photo, latitude, longitude, reported_by_name, reported_by_phone } = req.body;
   if (!location || !description) {
     return res.status(400).json({ error: 'location and description are required' });
   }
   try {
     const result = await pool.query(
-      `INSERT INTO rescue_calls (location, description, urgency, photo)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [location, description, urgency || 'normal', photo || null]
+      `INSERT INTO rescue_calls (location, latitude, longitude, description, urgency, photo, reported_by_name, reported_by_phone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [location, latitude || null, longitude || null, description, urgency || 'normal', photo || null, reported_by_name || null, reported_by_phone || null]
     );
+    notifyRefresh(req);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -37,26 +53,23 @@ router.post('/calls', async (req, res) => {
 });
 
 // POST /api/calls/:id/claim — race-safe claim.
-// Body: { claimed_by }
-// One atomic UPDATE, guarded by WHERE status='reported', so only one concurrent
-// request can win even if two drivers tap "claim" at the same instant.
 router.post('/calls/:id/claim', async (req, res) => {
   const { id } = req.params;
-  const { claimed_by } = req.body;
-  if (!claimed_by) {
-    return res.status(400).json({ error: 'claimed_by is required' });
+  const { claimed_by_name, claimed_by_phone } = req.body;
+  if (!claimed_by_name || !claimed_by_phone) {
+    return res.status(400).json({ error: 'Both name and phone number are required to claim' });
   }
   try {
     const result = await pool.query(
       `UPDATE rescue_calls
-       SET status = 'claimed', claimed_by = $1, updated_at = now()
-       WHERE id = $2 AND status = 'reported'
+       SET status = 'claimed', claimed_by_name = $1, claimed_by_phone = $2, updated_at = now()
+       WHERE id = $3 AND status = 'reported'
        RETURNING *`,
-      [claimed_by, id]
+      [claimed_by_name, claimed_by_phone, id]
     );
 
     if (result.rows.length === 0) {
-      const existing = await pool.query('SELECT status, claimed_by FROM rescue_calls WHERE id = $1', [id]);
+      const existing = await pool.query('SELECT status, claimed_by_name FROM rescue_calls WHERE id = $1', [id]);
       if (existing.rows.length === 0) {
         return res.status(404).json({ error: 'Call not found' });
       }
@@ -65,19 +78,18 @@ router.post('/calls/:id/claim', async (req, res) => {
       }
       return res.status(409).json({
         error: 'This call was already claimed',
-        claimed_by: existing.rows[0].claimed_by,
+        claimed_by: existing.rows[0].claimed_by_name,
       });
     }
 
+    notifyRefresh(req);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/calls/:id/cancel — edge case: a rescue is called off (animal already
-// helped by someone else, false alarm, etc). Blocked once an animal is already
-// resolved, so a completed case can't accidentally be cancelled after the fact.
+// POST /api/calls/:id/cancel — edge case: a rescue is called off.
 router.post('/calls/:id/cancel', async (req, res) => {
   const { id } = req.params;
   try {
@@ -91,6 +103,7 @@ router.post('/calls/:id/cancel', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(409).json({ error: 'This call cannot be cancelled (already resolved or already cancelled)' });
     }
+    notifyRefresh(req);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -98,9 +111,6 @@ router.post('/calls/:id/cancel', async (req, res) => {
 });
 
 // PATCH /api/calls/:id/foster-info — set dietary needs / medication schedule.
-// Body: { dietary_needs, medication_schedule }
-// Separate from handoffs because this is current-state info ("what the foster
-// needs to know right now"), not a historical log entry.
 router.patch('/calls/:id/foster-info', async (req, res) => {
   const { id } = req.params;
   const { dietary_needs, medication_schedule } = req.body;
@@ -117,6 +127,7 @@ router.patch('/calls/:id/foster-info', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Call not found' });
     }
+    notifyRefresh(req);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });

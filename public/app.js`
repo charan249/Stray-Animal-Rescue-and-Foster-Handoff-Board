@@ -17,7 +17,7 @@ let currentTab = 'emergencies';
 let allCalls = [];
 let currentLat = null;
 let currentLon = null;
-let pendingPhoto = null;
+let map = null; // Leaflet map instance
 
 // --- Real-time Sync (Socket.io) ---
 const socket = io();
@@ -94,19 +94,7 @@ document.getElementById('getLocationBtn').onclick = async () => {
   );
 };
 
-document.getElementById('photoInput').onchange = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    pendingPhoto = event.target.result;
-    const preview = document.getElementById('photoPreview');
-    preview.src = pendingPhoto;
-    preview.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-};
-
+// --- Coordination Dashboard Update ---
 function updateCoordDashboard(calls) {
   const stats = {
     reported: calls.filter(c => c.status === 'reported').length,
@@ -133,7 +121,9 @@ async function updateStats() {
 }
 
 async function loadCalls() {
+  // Show skeleton loading
   const listEl = document.getElementById('callList');
+  const mapEl = document.getElementById('mapView');
   if (currentTab !== 'map') {
     listEl.innerHTML = '<div class="skeleton-card"></div>'.repeat(3);
   }
@@ -149,14 +139,54 @@ async function loadCalls() {
   }
 }
 
+// --- Map Implementation ---
+function initMap() {
+  if (map) return;
+  map = L.map('mapView').setView([currentLat || 0, currentLon || 0], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+}
+
+function updateMapMarkers() {
+  if (!map) return;
+  map.eachLayer(layer => { if (layer instanceof L.Marker) map.removeLayer(layer); });
+
+  const activeCalls = allCalls.filter(c => ['reported', 'claimed', 'picked_up'].includes(c.status));
+  activeCalls.forEach(call => {
+    if (call.latitude && call.longitude) {
+      const marker = L.marker([call.latitude, call.longitude]).addTo(map);
+      marker.bindPopup(`
+        <strong>${escapeHtml(call.location)}</strong><br>
+        Status: ${call.status}<br>
+        <button onclick="window.dispatchEvent(new CustomEvent('focusCall', {detail: ${call.id}}))">View Details</button>
+      `);
+    }
+  });
+}
+
 function renderCalls() {
   const listEl = document.getElementById('callList');
+  const mapEl = document.getElementById('mapView');
+
+  if (currentTab === 'map') {
+    listEl.style.display = 'none';
+    mapEl.style.display = 'block';
+    initMap();
+    updateMapMarkers();
+    return;
+  }
+
+  listEl.style.display = 'block';
+  mapEl.style.display = 'none';
+
   const stages = TAB_STAGES[currentTab];
   const visible = allCalls.filter(c => stages.includes(c.status));
 
   if (visible.length === 0) {
     listEl.innerHTML = `
       <div style="text-align:center; padding: 2rem; color: #888;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🐾</div>
         <p>All clear! No animals currently in this stage.</p>
       </div>`;
     return;
@@ -197,7 +227,6 @@ function renderCaretaker(call) {
 function renderCallCard(call) {
   const card = document.createElement('div');
   card.className = `call-card ${call.status}`;
-  card.setAttribute('data-id', call.id);
 
   const isStalled = (call.status === 'claimed') &&
                     (Date.now() - new Date(call.updated_at).getTime() > 2 * 60 * 60 * 1000);
@@ -625,7 +654,7 @@ async function loadHandoffs(callId, container) {
   container.innerHTML = handoffs.map(h => `
     <div class="handoff-entry">
       <span class="stage-label">${h.stage.replace('_', ' ')}</span>
-      ${h.medical_notes ? ` — ${escapeHtml(h.medical_notes)}` : ''}
+      ${h.medical_notes ? ` — ${escapeHml(h.medical_notes)}` : ''}
       ${h.recorded_by ? ` (by ${escapeHtml(h.recorded_by)} ${h.recorded_by_phone ? `| ${escapeHtml(h.recorded_by_phone)}` : ''})` : ''}
     </div>
   `).join('');
@@ -692,5 +721,26 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// Global listener for map markers
+window.addEventListener('focusCall', (e) => {
+  const callId = e.detail;
+  const call = allCalls.find(c => c.id == callId);
+  if (call) {
+    currentTab = 'emergencies'; // default to list view
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-filter="emergencies"]').classList.add('active');
+    renderCalls();
+    // Find the card and highlight it
+    setTimeout(() => {
+      const card = document.querySelector(`.call-card[data-id="${callId}"]`); // Need to add data-id to card
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.boxShadow = '0 0 20px rgba(181, 98, 43, 0.5)';
+        setTimeout(() => card.style.boxShadow = '', 2000);
+      }
+    }, 100);
+  }
+});
+
 loadCalls();
-setInterval(loadCalls, 30000);
+setInterval(loadCalls, 30000); // Reduced polling since we have Sockets

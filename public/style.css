@@ -1,175 +1,394 @@
-* { box-sizing: border-box; }
-body {
-  font-family: -apple-system, Segoe UI, Roboto, sans-serif;
-  background: #f6f3ee;
-  color: #2b2620;
+/*
+  RESCUE BOARD - ABSOLUTE DUOLINGOL STYLE
+  This version uses !important on critical styles to ensure they override anything.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap');
+
+:root {
+  --color-eager-green: #58cc02 !important;
+  --color-green-dark: #46a302 !important;
+  --color-storybook-green: #d7ffb8 !important;
+  --color-spark-blue: #1cb0f6 !important;
+  --color-blue-dark: #158bc4 !important;
+  --color-paper-white: #ffffff !important;
+  --color-charcoal: #4b4b4b !important;
+  --color-pencil-gray: #777777 !important;
+  --color-border-gray: #afafaf !important;
+}
+
+* {
+  box-sizing: border-box;
   margin: 0;
-  padding: 0 1rem 3rem;
+  padding: 0;
 }
+
+body {
+  font-family: 'Nunito', sans-serif !important;
+  background-color: var(--color-paper-white) !important;
+  color: var(--color-charcoal) !important;
+  padding: 0 1rem 3rem !important;
+}
+
+.paw-bg {
+  background-color: #fffef9 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 60 60'%3E%3Cg fill='%23f3e5ab' fill-opacity='0.4'%3E%3Cpath d='M30 15c-2 0-4 2-4 4s2 4 4 4 4-2 4-4-2-4-4-4zm-8 6c-2 0-4 2-4 4s2 4 4 4 4-2 4-4-2-4-4-4zm16 0c-2 0-4 2-4 4s2 4 4 4 4-2 4-4-2-4-4-4zm-8 8c-5 0-9 4-9 9s4 9 9 9 9-4 9-9-4-9-9-9z'/%3E%3C/g%3E%3C/svg%3E") !important;
+}
+
 header {
-  padding: 2rem 0 1rem;
   text-align: center;
+  padding: 3rem 0 2rem !important;
 }
-header h1 { margin: 0; font-size: 1.8rem; }
-.subtitle { color: #6b6255; margin: 0.3rem 0 0; }
+
+.playful-title {
+  font-size: 3.5rem !important;
+  color: var(--color-eager-green) !important;
+  font-weight: 800 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.subtitle {
+  color: var(--color-pencil-gray) !important;
+  font-size: 1.2rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 2rem !important;
+}
+
+.header-illustration {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+/* --- Coordination Dashboard --- */
+.coord-dashboard {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 3rem;
+}
+.coord-item {
+  background: white !important;
+  border: 2px solid var(--color-border-gray) !important;
+  border-radius: 16px !important;
+  padding: 1rem !important;
+  min-width: 110px;
+  text-align: center;
+  transition: transform 0.1s ease;
+}
+.coord-val {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  display: block;
+}
+.coord-lab {
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  color: var(--color-pencil-gray) !important;
+}
+.coord-item.reported { border-color: #ff9600 !important; background: #fff8f0 !important; }
+.coord-item.claimed { border-color: var(--color-spark-blue) !important; background: #f0faff !important; }
+.coord-item.picked_up { border-color: #ce8eff !important; background: #faf5ff !important; }
+.coord-item.foster { border-color: var(--color-eager-green) !important; background: #f5ffef !important; }
 
 main {
   max-width: 700px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 3rem;
 }
 
 section {
-  background: #fff;
-  border: 1px solid #e4ddd0;
-  border-radius: 10px;
-  padding: 1.25rem 1.5rem;
+  background: white !important;
+  border: 2px solid var(--color-border-gray) !important;
+  border-radius: 24px !important;
+  padding: 2rem !important;
+  box-shadow: 0 6px 0px var(--color-border-gray) !important;
 }
 
-h2 { margin-top: 0; font-size: 1.1rem; }
-
-form { display: flex; flex-direction: column; gap: 0.6rem; }
-input, textarea, select, button {
-  font: inherit;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid #d8d0c0;
-  border-radius: 6px;
-}
-textarea { min-height: 70px; resize: vertical; }
-button {
-  background: #b5622b;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-button:hover { background: #9c5223; }
-button:disabled { background: #c9b9a9; cursor: not-allowed; }
-
-.call-card {
-  border: 1px solid #e4ddd0;
-  border-radius: 8px;
-  padding: 0.9rem 1rem;
-  margin-bottom: 0.8rem;
-}
-.call-card .top-row { display: flex; justify-content: space-between; align-items: center; }
-.call-card .location { font-weight: 600; }
-.badge {
-  font-size: 0.75rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  text-transform: capitalize;
-}
-.badge.reported { background: #fde8d0; color: #8a4b12; }
-.badge.claimed { background: #ddeeff; color: #1a4d80; }
-.badge.picked_up { background: #e4e0ff; color: #4331a3; }
-.badge.at_clinic { background: #ffe0e0; color: #a32222; }
-.badge.at_foster { background: #ddf5df; color: #24762e; }
-.badge.resolved { background: #e5e5e5; color: #555; }
-
-.urgent-tag { color: #b5222b; font-weight: 700; font-size: 0.8rem; }
-
-.call-card .desc { margin: 0.4rem 0; color: #4a453d; }
-.call-card .actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
-.call-card .actions button { padding: 0.4rem 0.7rem; font-size: 0.85rem; }
-
-.status-msg { font-size: 0.9rem; margin-top: 0.5rem; }
-.status-msg.error { color: #a32222; }
-.status-msg.success { color: #24762e; }
-
-.handoff-log { margin-top: 0.6rem; border-top: 1px dashed #e4ddd0; padding-top: 0.6rem; }
-.handoff-entry { font-size: 0.85rem; color: #4a453d; margin-bottom: 0.3rem; }
-.handoff-entry .stage-label { font-weight: 600; }
-
-/* --- v2 additions: photo, tabs, foster info, check-in --- */
-.photo-label {
-  font-size: 0.85rem;
-  color: #4a453d;
+.section-illustration {
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.photo-preview {
-  max-width: 100%;
-  max-height: 160px;
-  border-radius: 8px;
-  object-fit: cover;
-  margin-top: 0.3rem;
-}
-.call-photo {
-  width: 100%;
-  max-height: 180px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
+.section-title {
+  text-align: center;
+  font-size: 2rem !important;
+  color: var(--color-eager-green) !important;
+  font-weight: 800 !important;
+  margin-bottom: 2rem !important;
+}
+
+/* --- Form Elements --- */
+form { display: flex; flex-direction: column; gap: 1.2rem; }
+.location-group, .user-group { display: flex; gap: 0.5rem; }
+.location-group input, .user-group input { flex: 1; }
+
+input, textarea, select {
+  font-family: 'Nunito', sans-serif !important;
+  padding: 12px !important;
+  border: 2px solid var(--color-border-gray) !important;
+  border-radius: 12px !important;
+  font-size: 1rem !important;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none !important;
+  border-color: var(--color-eager-green) !important;
+}
+
+/* --- THE DUOLINGO BUTTON (3D) --- */
+button {
+  font-family: 'Nunito', sans-serif !important;
+  background-color: var(--color-eager-green) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  padding: 12px 24px !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 0px var(--color-green-dark) !important;
+  transition: all 0.1s ease !important;
+}
+button:hover {
+  background-color: #66df03 !important;
+}
+button:active {
+  transform: translateY(2px) !important;
+  box-shadow: 0 2px 0px var(--color-green-dark) !important;
+}
+button:disabled {
+  background-color: var(--color-faded-gray) !important;
+  box-shadow: 0 4px 0px #ccc !important;
+  cursor: not-allowed !important;
+}
+
+.primary-btn {
+  font-size: 1.2rem !important;
+  margin-top: 1rem !important;
+}
+
+.location-group button {
+  background-color: white !important;
+  color: var(--color-eager-green) !important;
+  border: 2px solid var(--color-eager-green) !important;
+  box-shadow: 0 4px 0px var(--color-storybook-green) !important;
+}
+.location-group button:active {
+  box-shadow: 0 2px 0px var(--color-storybook-green) !important;
+}
+
+/* --- Call Cards --- */
+.call-card {
+  background: white !important;
+  border: 2px solid var(--color-border-gray) !important;
+  border-radius: 20px !important;
+  padding: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+  position: relative;
+}
+.call-card:hover {
+  border-color: var(--color-eager-green) !important;
+}
+
+.call-card.reported { border-left: 12px solid #ff9600 !important; }
+.call-card.claimed { border-left: 12px solid var(--color-spark-blue) !important; }
+.call-card.picked_up { border-left: 12px solid #ce8eff !important; }
+.call-card.at_clinic { border-left: 12px solid #ff4b81 !important; }
+.call-card.at_foster { border-left: 12px solid var(--color-eager-green) !important; }
+.call-card.resolved { border-left: 12px solid var(--color-faded-gray) !important; }
+
+.call-card .top-row { display: flex; justify-content: space-between; align-items: center; }
+.call-card .location { font-weight: 800 !important; font-size: 1.2rem !important; }
+
+.badge {
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  border: 2px solid transparent !important;
+}
+.badge.reported { background: #fff8f0 !important; color: #ff9600 !important; border-color: #ff9600 !important; }
+.badge.claimed { background: #f0faff !important; color: var(--color-spark-blue) !important; border-color: var(--color-spark-blue) !important; }
+.badge.picked_up { background: #faf5ff !important; color: #ce8eff !important; border-color: #ce8eff !important; }
+.badge.at_clinic { background: #fff0f5 !important; color: #ff4b81 !important; border-color: #ff4b81 !important; }
+.badge.at_foster { background: #f5ffef !important; color: var(--color-eager-green) !important; border-color: var(--color-eager-green) !important; }
+
+.call-card .desc {
+  margin: 1rem 0 !important;
+  font-size: 1.1rem !important;
+  color: var(--color-pencil-gray) !important;
+}
+
+.call-card .actions {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+.call-card .actions button {
+  padding: 8px 16px !important;
+  font-size: 0.8rem !important;
+}
+
+.status-msg {
+  text-align: center;
+  margin-top: 1rem;
+  font-weight: 700 !important;
+}
+
+/* --- Tabs --- */
 .tabs {
   display: flex;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
   overflow-x: auto;
 }
 .tab-btn {
-  background: #efe8db;
-  color: #4a453d;
-  border: 1px solid #e4ddd0;
-  padding: 0.5rem 0.8rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  white-space: nowrap;
-  cursor: pointer;
+  background: white !important;
+  color: var(--color-pencil-gray) !important;
+  border: 2px solid var(--color-border-gray) !important;
+  border-radius: 999px !important;
+  padding: 10px 20px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
 }
 .tab-btn.active {
-  background: #b5622b;
-  color: #fff;
-  border-color: #b5622b;
+  background: var(--color-eager-green) !important;
+  color: white !important;
+  border-color: var(--color-eager-green) !important;
+  box-shadow: 0 4px 0px var(--color-green-dark) !important;
 }
 
-.foster-info {
-  background: #fbf7ef;
-  border: 1px dashed #e0d5bd;
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
+/* --- Modals --- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3) !important;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
 }
-.foster-info .label { font-weight: 600; }
+.modal-content {
+  background: white !important;
+  padding: 2rem !important;
+  border-radius: 30px 30px 0 0 !important;
+  width: 100%;
+  max-width: 500px;
+  border: 2px solid var(--color-border-gray) !important;
+  border-bottom: none !important;
+  animation: slideUp 0.4s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-.checkin-toggle {
-  margin-top: 0.6rem;
+.modal-content h3 {
+  color: var(--color-eager-green) !important;
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  text-align: center;
+}
+
+.modal-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  border-top: 1px dashed #e4ddd0;
-  padding-top: 0.6rem;
-}
-.checkin-toggle label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-}
-.checkin-toggle input[type="checkbox"] {
-  width: 1.2rem;
-  height: 1.2rem;
-}
-.worsening-flag {
-  color: #a32222;
-  font-weight: 600;
-  font-size: 0.8rem;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
 .cancel-btn {
   background: transparent !important;
   color: #a32222 !important;
-  border: 1px solid #a32222 !important;
-  font-weight: 500 !important;
+  border: 2px solid #a32222 !important;
+  box-shadow: 0 4px 0px #7a1a1a !important;
 }
 
 @media (max-width: 480px) {
-  header h1 { font-size: 1.5rem; }
-  section { padding: 1rem; }
+  body {
+    padding: 0 0.5rem 2rem !important;
+  }
+  header {
+    padding: 2rem 0 1rem !important;
+  }
+  .playful-title {
+    font-size: 2.2rem !important;
+  }
+  .subtitle {
+    font-size: 1rem !important;
+    padding: 0 1rem;
+  }
+  .header-illustration svg {
+    width: 80px !important;
+    height: 80px !important;
+  }
+  .coord-dashboard {
+    gap: 0.5rem !important;
+    justify-content: space-around !important;
+    padding: 0 0.5rem;
+  }
+  .coord-item {
+    min-width: 75px !important;
+    padding: 0.5rem !important;
+    flex: 1 1 auto !important;
+  }
+  .coord-val {
+    font-size: 1.4rem !important;
+  }
+  .coord-lab {
+    font-size: 0.6rem !important;
+  }
+  main {
+    gap: 1.5rem !important;
+  }
+  section {
+    padding: 1.2rem !important;
+    border-radius: 20px !important;
+  }
+  .section-title {
+    font-size: 1.5rem !important;
+  }
+  .section-illustration svg {
+    width: 60px !important;
+    height: 60px !important;
+  }
+  .location-group, .user-group {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  .location-group button {
+    width: 100% !important;
+    padding: 0.8rem !important;
+  }
+  .tabs {
+    gap: 0.5rem !important;
+    justify-content: flex-start !important;
+    padding-bottom: 1rem !important;
+  }
+  .tab-btn {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.8rem !important;
+  }
+  .call-card {
+    padding: 1rem !important;
+  }
+  .call-card .actions {
+    gap: 0.5rem !important;
+  }
+  .call-card .actions button {
+    flex: 1 1 auto !important;
+    font-size: 0.7rem !important;
+    padding: 8px !important;
+  }
+  .modal-content {
+    padding: 1.5rem !important;
+    width: 95% !important;
+    border-radius: 25px 25px 0 0 !important;
+  }
 }

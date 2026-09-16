@@ -1,89 +1,78 @@
-# Rescue & Foster Handoff Board
+# 🐾 Rescue Board - Animal Rescue Coordination System
 
-A coordination board for a volunteer-run animal rescue network. Lets volunteers
-log rescue calls with a photo, claim pickups without duplicate dispatches, and
-track an animal's diet, medications, and daily condition as it moves from
-rescue → clinic → foster home. No sign-up required to view or claim a rescue.
+A mission-critical, real-time coordination dashboard designed for animal rescue volunteers. The primary goal is to minimize friction for field workers and ensure a reliable chain of custody for animals in transition from report to foster care.
 
-## Features
+## 🚀 Key Features
 
-- **Report a call** — location, condition, urgency, optional photo (compressed
-  client-side for low-bandwidth mobile use).
-- **Claim a call** — atomic, race-safe: two volunteers can never claim the
-  same call, even at the exact same instant. Board polls every 8s so drivers
-  see claims land without a manual refresh.
-- **Cancel a call** — for false alarms; blocked once a call is resolved.
-- **Foster info** — dietary needs and medication schedule, shown prominently
-  once an animal is in clinic/foster care.
-- **Daily check-in toggle** — foster hosts mark meds given / flag worsening
-  condition, once per day (re-saving updates today's entry, no duplicates).
-- **Handoff log** — an append-only history per animal, so medical notes never
-  get overwritten as the animal moves stages.
-- **Filterable dashboard** — three tabs: Open Emergencies, In Transit, Foster
-  Care.
+### 📍 GPS-Based Proximity Sorting
+To get animals to safety faster, the board automatically sorts rescue calls based on the volunteer's current location.
+- **Implementation**: Uses the browser's `navigator.geolocation` API and the **Haversine Formula** to calculate the distance between the volunteer and the rescue site in real-time.
+- **Benefit**: Volunteers can instantly identify the closest emergencies, reducing response time.
 
-## Tech stack
+### ⚡ Atomic Claiming (Race-Condition Prevention)
+In high-pressure situations, multiple volunteers might try to claim the same rescue.
+- **Implementation**: Uses a strict atomic SQL update: `UPDATE rescue_calls SET status = 'claimed' WHERE id = $1 AND status = 'reported'`.
+- **Benefit**: This ensures that only one person can successfully claim a rescue, preventing duplicate pickups and coordination chaos.
 
-- Node.js + Express (backend, minimal framework, no build step)
-- PostgreSQL (database)
-- Plain HTML/CSS/vanilla JS (frontend, no framework)
+### 🔄 Real-time Synchronization
+No one has to manually refresh the page to see new rescues or claims.
+- **Implementation**: Powered by **Socket.io**, the server emits a `refresh` event to all connected clients whenever a state change occurs (Report $\rightarrow$ Claim $\rightarrow$ Pickup $\rightarrow$ Clinic $\rightarrow$ Foster).
+- **Benefit**: The entire team sees the same board state instantly.
 
-## Local setup
+### 🧬 Chain of Custody Tracking
+Ensures every animal's medical and caretaker history is preserved.
+- **Implementation**: A linear state-machine routing system (`reported` $\rightarrow$ `claimed` $\rightarrow$ `picked_up` $\rightarrow$ `at_clinic` $\rightarrow$ `at_foster` $\rightarrow$ `resolved`).
+- **Medical View**: A dedicated "Medical File" view aggregates all handoff notes and daily health check-ins into a chronological timeline.
 
-1. Install dependencies:
-   ```
+### 🎨 Duolingo-Inspired UI/UX
+Designed for high-stress environments where speed and clarity are paramount.
+- **The "Sticker" Aesthetic**: A flat, high-contrast design with chunky borders and tactile 3D buttons.
+- **Mobile-First**: Fully responsive layout with "Slide-up Sheets" for modals, optimized for one-handed use on mobile devices in the field.
+
+## 🛠️ Tech Stack
+
+- **Backend**: Node.js, Express
+- **Database**: PostgreSQL (via `pg` pool)
+- **Real-time**: Socket.io
+- **Frontend**: Vanilla JavaScript, CSS3 (Custom Properties)
+- **Infrastructure**: Environment variables via `dotenv`
+
+## 📦 Setup & Installation
+
+1. **Clone the repository**:
+   \`\`\`bash
+   git clone <repo-url>
+   cd rescue-board
+   \`\`\`
+
+2. **Install dependencies**:
+   \`\`\`bash
    npm install
-   ```
-2. Set up a PostgreSQL database (locally, or a free instance on
-   [Render](https://render.com) / [Neon](https://neon.tech)).
-3. Copy `.env.example` to `.env` and fill in your `DATABASE_URL`:
-   ```
-   cp .env.example .env
-   ```
-4. Apply the schema:
-   ```
-   psql "$DATABASE_URL" -f schema.sql
-   ```
-5. (Optional but recommended) Load realistic demo data covering every stage:
-   ```
-   node seed.js
-   ```
-6. Start the server:
-   ```
+   \`\`\`
+
+3. **Environment Setup**:
+   Create a `.env` file in the root directory:
+   \`\`\`env
+   DATABASE_URL=your_postgresql_connection_string
+   PORT=3000
+   \`\`\`
+
+4. **Database Initialization**:
+   Run the `schema.sql` in your PostgreSQL instance to create the necessary tables.
+
+5. **Run the server**:
+   \`\`\`bash
    npm start
-   ```
-7. Open `http://localhost:3000`.
+   \`\`\`
 
-## Deploying (Render, free tier)
+6. **Access the app**:
+   Open `http://localhost:3000` in your browser.
 
-1. Push this repo to GitHub.
-2. On Render: **New → Web Service**, connect the repo.
-   - Build command: `npm install`
-   - Start command: `npm start`
-3. On Render: **New → PostgreSQL** (free tier), copy its internal connection
-   string.
-4. In the web service's **Environment** tab, set `DATABASE_URL` to that
-   connection string.
-5. Open a **Shell** on the Postgres instance (or connect with `psql` from
-   your machine) and run `schema.sql` against it once.
-6. Deploy. Your live URL will be `https://<your-service-name>.onrender.com`.
+## 🛣️ Rescue Lifecycle
 
-## API summary
-
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/calls` | List all calls |
-| POST | `/api/calls` | Report a new call (with optional photo) |
-| POST | `/api/calls/:id/claim` | Claim a call (race-safe) |
-| POST | `/api/calls/:id/cancel` | Cancel a call (blocked if resolved/cancelled) |
-| PATCH | `/api/calls/:id/foster-info` | Set dietary needs / medication schedule |
-| GET | `/api/calls/:id/handoffs` | Get an animal's handoff history |
-| POST | `/api/calls/:id/handoffs` | Log a stage change / medical notes |
-| GET | `/api/calls/:id/checkins` | Get daily check-in history |
-| POST | `/api/calls/:id/checkins` | Log/update today's check-in (meds given, worsening flag) |
-
-Also included: `seed.js` — populates realistic demo data across every stage
-(open emergency, claimed, in transit, at clinic, at foster, resolved,
-cancelled) so the workflow is visible immediately. Run with `node seed.js`.
-
-See `TRADEOFFS.md` for design decisions and known limitations.
+1. **Reported**: A rescue is logged with GPS coordinates and urgency.
+2. **Claimed**: A volunteer claims the rescue (Atomic check).
+3. **Picked Up**: Driver confirms pickup (Automatic driver attribution).
+4. **At Clinic**: Animal is handed over to medical staff (Caretaker sync).
+5. **At Foster**: Animal is placed with a foster parent (Mandatory medical notes).
+6. **Resolved**: Rescue is completed and animal is safe.

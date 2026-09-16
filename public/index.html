@@ -6,17 +6,57 @@
 <title>Rescue &amp; Foster Handoff Board</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="paw-bg">
   <header>
-    <h1>🐾 Rescue Board</h1>
+    <h1 class="playful-title">Rescue Board</h1>
     <p class="subtitle">Log calls · claim pickups · track foster care</p>
+
+    <!-- Embedded SVG for reliability -->
+    <div class="header-illustration">
+      <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z" fill="#58cc02"/>
+        <path d="M12 7C10.34 7 9 8.34 9 10C9 11.66 10.34 13 12 13C13.66 13 15 11.66 15 10C15 8.34 13.66 7 12 7ZM12 17C10.34 17 9 15.66 9 14C9 12.34 10.34 11 12 11C13.66 11 15 12.34 15 14C15 15.66 13.66 17 12 17Z" fill="#58cc02"/>
+      </svg>
+    </div>
+
+    <div id="coord-dashboard" class="coord-dashboard">
+      <div class="coord-item reported">
+        <span class="coord-val" id="stat-reported">0</span>
+        <span class="coord-lab">Open</span>
+      </div>
+      <div class="coord-item claimed">
+        <span class="coord-val" id="stat-claimed">0</span>
+        <span class="coord-lab">Claimed</span>
+      </div>
+      <div class="coord-item picked_up">
+        <span class="coord-val" id="stat-transit">0</span>
+        <span class="coord-lab">Transit</span>
+      </div>
+      <div class="coord-item foster">
+        <span class="coord-val" id="stat-foster">0</span>
+        <span class="coord-lab">Foster</span>
+      </div>
+    </div>
   </header>
 
   <main>
     <section class="report-form">
-      <h2>Report a Rescue Call</h2>
+      <!-- Embedded SVG for reliability -->
+      <div class="section-illustration">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 7 15.33 7 17V20H17V17C17 15.33 14.67 14 12 14Z" fill="#58cc02"/>
+        </svg>
+      </div>
+      <h2 class="section-title">Report a Rescue Call</h2>
       <form id="reportForm">
-        <input type="text" id="location" placeholder="Location" required>
+        <div class="location-group">
+          <input type="text" id="location" placeholder="Location" required>
+          <button type="button" id="getLocationBtn" title="Use my current GPS location">GPS</button>
+        </div>
+        <div class="user-group">
+          <input type="text" id="reportedByName" placeholder="Your Name" required>
+          <input type="tel" id="reportedByPhone" placeholder="Your Phone Number" required>
+        </div>
         <textarea id="description" placeholder="Animal & condition (e.g. limping, underweight)" required></textarea>
         <select id="urgency">
           <option value="urgent">Urgent</option>
@@ -24,11 +64,11 @@
           <option value="low">Low</option>
         </select>
         <label class="photo-label">
-          📷 Add a photo (optional)
+          Add a photo (optional)
           <input type="file" id="photoInput" accept="image/*" capture="environment">
         </label>
         <img id="photoPreview" class="photo-preview" style="display:none">
-        <button type="submit">Report Call</button>
+        <button type="submit" class="primary-btn">Report Call</button>
       </form>
       <div id="reportStatus" class="status-msg"></div>
     </section>
@@ -39,10 +79,23 @@
         <button class="tab-btn" data-filter="transit">In Transit</button>
         <button class="tab-btn" data-filter="foster">Foster Care</button>
       </div>
+
       <div id="callList">Loading...</div>
     </section>
   </main>
 
+  <div id="modalOverlay" class="modal-overlay" style="display:none">
+    <div class="modal-content">
+      <h3 id="modalTitle">Confirmation</h3>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button id="modalCancel" class="cancel-btn">Cancel</button>
+        <button id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

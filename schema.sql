@@ -4,6 +4,8 @@
 CREATE TABLE IF NOT EXISTS rescue_calls (
     id SERIAL PRIMARY KEY,
     location TEXT NOT NULL,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     description TEXT NOT NULL,          -- animal condition / situation description
     photo TEXT,                          -- base64-encoded image (kept small/compressed client-side; see TRADEOFFS.md)
     urgency TEXT NOT NULL DEFAULT 'normal',      -- 'low' | 'normal' | 'urgent'
