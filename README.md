@@ -1,5 +1,7 @@
 # Rescue Board - Animal Rescue Coordination System
 
+WEBSITE LINK: https://stray-animal-rescue-and-foster-handoff.onrender.com/
+
 A mission-critical, real-time coordination dashboard designed for animal rescue volunteers. The primary goal is to minimize friction for field workers and ensure a reliable chain of custody for animals in transition from report to foster care.
 
 ## Key Features
